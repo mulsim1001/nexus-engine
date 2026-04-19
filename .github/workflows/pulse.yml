@@ -1,0 +1,46 @@
+name: NEXUS — Market Intelligence Pulse
+
+on:
+  schedule:
+    - cron: "*/10 2-8 * * 1-5"
+  workflow_dispatch:
+
+concurrency:
+  group: nexus-market-pulse
+  cancel-in-progress: false
+
+jobs:
+  pulse:
+    name: Market Intelligence Cycle
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Jalankan NEXUS Engine
+        env:
+          TELEGRAM_BOT_TOKEN:  ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:    ${{ secrets.TELEGRAM_CHAT_ID }}
+          SUPABASE_URL:        ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY:        ${{ secrets.SUPABASE_KEY }}
+          TWELVEDATA_API_KEY:  ${{ secrets.TWELVEDATA_API_KEY }}
+        run: python run.py
+
+      - name: Simpan log siklus (hanya bila gagal)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexus-log-${{ github.run_number }}
+          path: "*.log"
+          retention-days: 5
