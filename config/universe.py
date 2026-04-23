@@ -50,7 +50,6 @@ LQ45_UNIVERSE = [
     "TOWR.JK",   # Sarana Menara Nusantara
     "UNTR.JK",   # United Tractors
     "UNVR.JK",   # Unilever Indonesia
-    "WSKT.JK",   # Waskita Karya
 ]
 
 # Benchmark pasar — IHSG sebagai barometer makro
