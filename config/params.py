@@ -110,12 +110,20 @@ SHORT_GUARD_PCT    = 0.025   # Guard level untuk sinyal jual (2.5%)
 # Sumber data sekunder: Twelve Data API (rescue, 1 kredit/ticker saat yfinance gagal)
 
 DATA_LOOKBACK     = "5d"               # Rentang historis yang diambil
-DATA_RESOLUTION   = "5m"              # Resolusi candle (5 menit)
+DATA_RESOLUTION   = "5m"               # Resolusi candle (5 menit)
 FETCH_BATCH_SIZE  = 10                 # Ukuran batch per request
 FETCH_BATCH_PAUSE = 2                  # Detik jeda antar batch
-DATA_MAX_DELAY_MINUTES = 30            # Maksimum usia data yang masih diterima
+DATA_MAX_DELAY_MINUTES = 30            # Maksimum usia data saat bursa AKTIF
 MIN_CANDLES_REQUIRED   = 55            # Minimal candle agar analisa bermakna
 
+# --- Tambahan untuk reliability fetcher ---
+FETCH_RETRY_COUNT      = 3             # Jumlah percobaan ulang yfinance per batch
+FETCH_RETRY_BASE_DELAY = 1.5           # Detik dasar backoff antar retry (akan dikalikan attempt)
+BENCHMARK_CACHE_MINUTES = 30           # Cache ^JKSE dalam-proses (sebenarnya tidak persist
+                                       # antar siklus karena GitHub Actions ephemeral, tapi
+                                       # mencegah duplikat fetch jika fungsi dipanggil 2x)
+
+# --- Twelve Data ---
 TWELVEDATA_BASE_URL = "https://api.twelvedata.com/time_series"
 TWELVEDATA_RESOLUTION = "5min"         # Format interval Twelve Data
 TWELVEDATA_CANDLES    = 390            # ~5 hari × 78 candle/hari
