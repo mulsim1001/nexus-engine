@@ -169,10 +169,51 @@ def _yf_download_batch(tickers: list[str]) -> dict[str, pd.DataFrame]:
 
 def _pull_yfinance(ticker: str) -> Optional[pd.DataFrame]:
     """
-    Ambil 1 ticker dari Yahoo (dipakai untuk fallback per-ticker dan benchmark).
+    Ambil 1 ticker dari Yahoo via yf.Ticker().history().
+    Lebih reliable untuk single ticker (terutama index seperti ^JKSE)
+    dibanding yf.download() yang punya quirk MultiIndex.
     """
-    results = _yf_download_batch([ticker])
-    return results.get(ticker)
+    import yfinance as yf
+
+    last_exc = None
+    for attempt in range(1, FETCH_RETRY_COUNT + 1):
+        try:
+            kwargs = dict(period=DATA_LOOKBACK, interval=DATA_RESOLUTION, auto_adjust=False)
+            if _YF_SESSION is not None:
+                tk = yf.Ticker(ticker, session=_YF_SESSION)
+            else:
+                tk = yf.Ticker(ticker)
+
+            raw = tk.history(**kwargs)
+
+            if raw is None or raw.empty:
+                raise RuntimeError("response kosong")
+
+            cols_needed = ["Open", "High", "Low", "Close", "Volume"]
+            available = [c for c in cols_needed if c in raw.columns]
+            if not available:
+                raise RuntimeError(f"kolom tidak ditemukan, columns: {list(raw.columns)}")
+
+            df = raw[available].copy()
+            for c in cols_needed:
+                if c not in df.columns:
+                    df[c] = 0.0
+            df = df[cols_needed].dropna(subset=["Open", "High", "Low", "Close"])
+            df.index = pd.to_datetime(df.index)
+            return df if not df.empty else None
+
+        except Exception as exc:
+            last_exc = exc
+            if attempt < FETCH_RETRY_COUNT:
+                delay = FETCH_RETRY_BASE_DELAY * attempt + random.random()
+                log.warning(
+                    f"[yfinance] {ticker} gagal (attempt {attempt}/{FETCH_RETRY_COUNT}): {exc} "
+                    f"— retry dalam {delay:.1f}s"
+                )
+                time.sleep(delay)
+
+    log.warning(f"[yfinance] {ticker} gagal total setelah {FETCH_RETRY_COUNT} percobaan: {last_exc}")
+    return None
 
 
 # ============================================================
